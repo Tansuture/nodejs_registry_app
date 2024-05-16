@@ -11,7 +11,7 @@ app.use(
 
 app.use(express.json());
 
-const PORT = 80;
+const PORT = 88;
 const HOST = "44.223.22.88";
 
 app.use((req, res, next) => {
