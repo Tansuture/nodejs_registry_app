@@ -3,10 +3,16 @@ const axios = require("axios");
 const cors = require("cors");
 
 const app = express();
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+  })
+);
+
 app.use(express.json());
 
-const PORT = 3003;
+const PORT = 80;
+const HOST = "44.223.22.88";
 
 app.use((req, res, next) => {
   const paramsToUpperCase = ["street", "county", "district", "locality"];
