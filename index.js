@@ -84,4 +84,4 @@ app.get("/api/properties", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, HOST, () => console.log(`Server running on port ${PORT}`));
