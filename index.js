@@ -12,7 +12,7 @@ app.use(
 app.use(express.json());
 
 const PORT = 80;
-const HOST = "44.223.22.88";
+const HOST = "107.23.42.198";
 
 app.use((req, res, next) => {
   const paramsToUpperCase = ["street", "county", "district", "locality"];
