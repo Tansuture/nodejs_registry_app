@@ -12,7 +12,6 @@ app.use(
 app.use(express.json());
 
 const PORT = 80;
-const HOST = "107.23.42.198";
 
 app.use((req, res, next) => {
   const paramsToUpperCase = ["street", "county", "district", "locality"];
@@ -84,4 +83,4 @@ app.get("/api/properties", async (req, res) => {
   }
 });
 
-app.listen(PORT, HOST, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
