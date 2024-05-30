@@ -11,7 +11,7 @@ app.use(
 
 app.use(express.json());
 
-const PORT = 80;
+const PORT = 3002;
 
 app.use((req, res, next) => {
   const paramsToUpperCase = ["street", "county", "district", "locality"];
@@ -26,53 +26,70 @@ app.use((req, res, next) => {
 app.get("/api/properties", async (req, res) => {
   const {
     newBuild,
-    minTransactionDate,
-    maxTransactionDate,
+    transactionDate,
     min_price,
     max_price,
-    typeLabel,
-    estateTypeLabel,
+    estateType,
     transactionCategory,
     county,
     district,
     locality,
     postcode,
     street,
-    town,
     propertyType,
   } = req.query;
 
-  const baseUrl =
-    "https://landregistry.data.gov.uk/data/ppi/transaction-record.json?";
-  let queryParams = [];
+  const baseUrl = "https://landregistry.data.gov.uk/landregistry/query";
+  let query = `
+    PREFIX ppi: <http://landregistry.data.gov.uk/def/ppi/>
+    PREFIX lrcommon: <http://landregistry.data.gov.uk/def/common/>
+    SELECT ?postcode ?amount ?date ?status
+    WHERE {
+      ?transx a ppi:TransactionRecord .
+      ?transx ppi:pricePaid ?amount .
+      ?transx ppi:transactionDate ?date .
+      ?transx ppi:propertyAddress ?addr .
+      ?transx ppi:recordStatus ?status .
+      ?addr lrcommon:postcode ?postcode .
+  `;
 
-  const addParam = (key, value) => {
-    if (value) {
-      queryParams.push(`${key}=${encodeURIComponent(value)}`);
+  if (newBuild) query += `?transx ppi:newBuild "${newBuild}" . `;
+  if (transactionDate)
+    query += `?transx ppi:transactionDate "${transactionDate}" . `;
+  if (min_price)
+    query += `?transx ppi:pricePaid ?amount . FILTER(?amount >= ${min_price}) `;
+  if (max_price)
+    query += `?transx ppi:pricePaid ?amount . FILTER(?amount <= ${max_price}) `;
+  if (estateType)
+    query += `?transx ppi:estateType.prefLabel "${estateType}" . `;
+  if (transactionCategory)
+    query += `?transx ppi:transactionCategory.prefLabel "${transactionCategory}" . `;
+  if (county) query += `?addr lrcommon:county "${county}" . `;
+  if (district) query += `?addr lrcommon:district "${district}" . `;
+  if (locality) query += `?addr lrcommon:locality "${locality}" . `;
+  if (postcode) query += `?addr lrcommon:postcode "${postcode}" . `;
+  if (street) query += `?addr lrcommon:street "${street}" . `;
+  if (propertyType) {
+    if (typeof propertyType === "string") {
+      query += `?transx ppi:propertyType.prefLabel "${propertyType}" . `;
+    } else {
+      propertyType.forEach((type) => {
+        query += `?transx ppi:propertyType.prefLabel "${type}" . `;
+      });
     }
+  }
+
+  query += `} LIMIT 100`;
+  console.log(query);
+
+  const params = {
+    query: query,
+    output: "json",
   };
 
-  addParam("newBuild", newBuild);
-  addParam("earliestDate", minTransactionDate);
-  addParam("latestDate: ", maxTransactionDate);
-  addParam("min-pricePaid", min_price);
-  addParam("max-pricePaid", max_price);
-  addParam("estateType.prefLabel", estateTypeLabel);
-  addParam("transactionCategory.prefLabel", transactionCategory);
-  addParam("propertyAddress.county", county);
-  addParam("propertyAddress.district", district);
-  addParam("propertyAddress.locality", locality);
-  addParam("propertyAddress.postcode", postcode);
-  addParam("propertyAddress.street", street);
-  addParam("propertyAddress.town", town);
-  addParam("propertyType.prefLabel", propertyType);
-
-  const queryString = queryParams.join("&");
-  const finalUrl = `${baseUrl}${queryString}`;
-
   try {
-    const response = await axios.get(finalUrl);
-    res.status(200).json(response.data.result.items);
+    const response = await axios.get(baseUrl, { params });
+    res.status(200).json(response.data.results.bindings);
   } catch (error) {
     console.error("Error fetching data from Land Registry:", error);
     res.status(error.response ? error.response.status : 500).json({
